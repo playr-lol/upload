@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Secure File Upload</title>
+</head>
+<body>
+  <h1>Upload a File</h1>
+  <form id="loginForm">
+    <label for="tokenInput">Enter your token:</label>
+    <input type="password" id="tokenInput" required />
+    <button type="submit">Proceed</button>
+  </form>
+
+  <div id="uploadSection" style="display: none;">
+    <form id="uploadForm">
+      <input type="file" id="fileInput" required />
+      <button type="submit">Upload</button>
+    </form>
+  </div>
+
+  <script>
+    let authToken = '';
+
+    const loginForm = document.getElementById('loginForm');
+    const uploadSection = document.getElementById('uploadSection');
+    const uploadForm = document.getElementById('uploadForm');
+
+    // Handle token input
+    loginForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const tokenInput = document.getElementById('tokenInput');
+      authToken = tokenInput.value.trim();
+
+      if (authToken) {
+        // Hide the login form and show the upload section
+        loginForm.style.display = 'none';
+        uploadSection.style.display = 'block';
+      } else {
+        alert('Please enter a valid token.');
+      }
+    });
+
+    // Handle file upload
+    uploadForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const fileInput = document.getElementById('fileInput');
+      const file = fileInput.files[0];
+
+      if (!file) {
+        alert('Please select a file to upload.');
+        return;
+      }
+
+      try {
+        const response = await fetch('/upload', {
+          method: 'POST',
+          headers: {
+            'Authorization': 'Bearer ' + authToken,
+            'Content-Type': file.type,
+          },
+          body: file,
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          alert('File uploaded successfully: ' + data.url);
+        } else if (response.status === 401) {
+          alert('Unauthorized: Invalid token.');
+          // Reset the form to prompt for the token again
+          authToken = '';
+          loginForm.style.display = 'block';
+          uploadSection.style.display = 'none';
+        } else {
+          const errorText = await response.text();
+          alert('Upload failed: ' + errorText);
+        }
+      } catch (error) {
+        console.error('Error uploading file:', error);
+        alert('An error occurred while uploading the file.');
+      }
+    });
+  </script>
+</body>
+</html>
